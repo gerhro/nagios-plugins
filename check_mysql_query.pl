@@ -22,7 +22,7 @@ Tested on MySQL 5.0, 5.1, 5.5, 5.6, 5.7
 
 # TODO: add retry switch if valid below threshold
 
-$VERSION = "1.1.5";
+$VERSION = "1.1.6";
 
 use strict;
 use warnings;
@@ -53,7 +53,9 @@ my $message_printf = 0;
 my $message_printf_numeric = 0;
 my $no_querytime = 0;
 my $output;
+my $message_long;
 my $regex;
+my $long = 0;
 my $short;
 my $units = "";
 
@@ -77,6 +79,7 @@ env_var("MYSQL_DATABASE", \$database);
     "U|units=s"     => [ \$units,    "Units of measurement for graphing output (%/s/ms/us/B/KB/MB/TB/c)" ],
     "T|short"       => [ \$short,    "Shorten output, do not output message just result" ],
     "Q|no-querytime" => [ \$no_querytime, "Do not output the mysql query time" ],
+    "L|long"      => [ \$long, "Long output, Print the whole Row, not just the Result"],
     %thresholdoptions,
 );
 @usage_order = qw/host port user password database mysql-socket query field epoch message message-prepend output regex warning critical graph label units short no-querytime/;
@@ -120,6 +123,7 @@ if($message =~ /^[^%]*\%s[^%]*$/){
     $message_printf_numeric = 1;
     vlog2("\nenabling printf numeric format message (only 1 float/int printf variable detected)");
 }
+#$message = $sth->fetchrow_array;
 $graph = 1 if $label;
 $graph = 1 if $units;
 if($graph){
@@ -167,8 +171,11 @@ sub execute_query{
         my @data = $sth->fetchrow_array();
         # TODO: better formatting
         print "result row:  " if ($verbose >= 3);
+
+        $message_long="";
         foreach(@data){
             print "$_ " if ($_ and $verbose >= 3);
+            $message_long .= "$_";
         }
         print "\n" if ($verbose >= 3);
         defined($data[$field-1]) or quit "CRITICAL", "couldn't find field $field in result from query \"$sql\"";
@@ -230,7 +237,12 @@ if(defined($output)){
         quit "CRITICAL", "$msg (expected: '$output')";
     }
 }
-
+if ($long){
+  vlog2 "Long Output enabed\n";
+  vlog2 "Long Output: $message_long";
+  $msg .= " | ";
+  $msg .= "$'message_long'";
+}
 if($thresholds{"defined"}){
     #$result =~ /^\d+(?:\.\d+)?$/ or quit "CRITICAL", "result did not match expected thresholds, was not in numeric format (result: '$result')";
     #isFloat($result)
@@ -252,6 +264,7 @@ if ($graph and isFloat($result, 1)) {
     }
     $msg .= " ";
 }
+
 $msg .= "mysql_query_time=${query_time}s" unless $no_querytime;
 
 vlog2;
