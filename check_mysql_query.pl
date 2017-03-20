@@ -241,8 +241,9 @@ if ($long){
   vlog2 "Long Output enabed\n";
   vlog2 "Long Output: $message_long";
   $msg .= " | ";
-  $msg .= "$'message_long'";
+  $msg .= "$message_long";
 }
+
 if($thresholds{"defined"}){
     #$result =~ /^\d+(?:\.\d+)?$/ or quit "CRITICAL", "result did not match expected thresholds, was not in numeric format (result: '$result')";
     #isFloat($result)
